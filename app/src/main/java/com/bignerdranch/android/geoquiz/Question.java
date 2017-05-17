@@ -9,9 +9,20 @@ public class Question {
     private int mTextResId;
     private boolean mAnswerTrue;
 
+    public boolean isAnswered() {
+        return mAnswered;
+    }
+
+    public void setAnswered(boolean answered) {
+        mAnswered = answered;
+    }
+
+    private boolean mAnswered;
+
     public Question(int textResId,boolean answerTrue){
         mTextResId=textResId;
         mAnswerTrue=answerTrue;
+        mAnswered=false;
 
     }
 
