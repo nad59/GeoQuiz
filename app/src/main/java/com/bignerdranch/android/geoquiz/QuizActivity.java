@@ -19,7 +19,9 @@ public class QuizActivity extends AppCompatActivity {
     private static final String BANK_INDEX="bank_index";
     private static final String ANS_INDEX="ans_index";
     private static final String COR_INDEX="cor_index";
+    private static final String CHEAT_INDEX="cheat_index";
     private static final int REQUEST_CODE_CHEAT = 0;
+    private int cheats = 3;
 
     private Button mTrueButton;
     private Button mFalseButton;
@@ -27,6 +29,7 @@ public class QuizActivity extends AppCompatActivity {
     private ImageButton mNextButton;
     private ImageButton mPrevButton;
     private TextView mQuestionTextView;
+    private TextView mCheatText;
     private int answeredQuestions=0;
     private int correctAnswers=0;
 
@@ -40,7 +43,6 @@ public class QuizActivity extends AppCompatActivity {
             new Question(R.string.question_asia, true),
     };
     private int mCurrentIndex = 0;
-    private boolean mIsCheater;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +53,11 @@ public class QuizActivity extends AppCompatActivity {
         if(savedInstanceState!=null) {
             mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
             mQuestionBank= (Question[])savedInstanceState.getParcelableArray(BANK_INDEX);
+            cheats = savedInstanceState.getInt(CHEAT_INDEX,0);
         }
+
+        mCheatText=(TextView)findViewById(R.id.cheat_text);
+        mCheatText.setText(cheats+"/3 Cheats Remaining");
 
         mQuestionTextView=(TextView) findViewById(R.id.question_text_view);
         mQuestionTextView.setOnClickListener(new View.OnClickListener(){
@@ -99,6 +105,9 @@ public class QuizActivity extends AppCompatActivity {
         });
 
         mCheatButton = (Button)findViewById(R.id.cheat_button);
+        if(cheats==0){
+            mCheatButton.setEnabled(false);
+        }
         mCheatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -161,6 +170,7 @@ public class QuizActivity extends AppCompatActivity {
         savedInstanceState.putParcelableArray(BANK_INDEX,mQuestionBank);
         savedInstanceState.putInt(COR_INDEX,correctAnswers);
         savedInstanceState.putInt(ANS_INDEX,answeredQuestions);
+        savedInstanceState.putInt(CHEAT_INDEX,cheats);
 
     }
 
@@ -174,6 +184,15 @@ public class QuizActivity extends AppCompatActivity {
             return;
         }
         mQuestionBank[mCurrentIndex].setCheated(CheatActivity.wasAnswerShown(data));
+        if(mQuestionBank[mCurrentIndex].isCheated()){
+            cheats-=1;
+            mCheatText.setText(cheats+"/3 Cheats Remaining");
+            if(cheats==0){
+                mCheatButton.setEnabled(false);
+
+            }
+
+        }
     }
 }
 
