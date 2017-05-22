@@ -1,5 +1,7 @@
 package com.bignerdranch.android.geoquiz;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,9 +16,14 @@ public class QuizActivity extends AppCompatActivity {
 
     private static final String TAG = "QuizActivity";
     private static final String KEY_INDEX="index";
+    private static final String BANK_INDEX="bank_index";
+    private static final String ANS_INDEX="ans_index";
+    private static final String COR_INDEX="cor_index";
+    private static final int REQUEST_CODE_CHEAT = 0;
 
     private Button mTrueButton;
     private Button mFalseButton;
+    private Button mCheatButton;
     private ImageButton mNextButton;
     private ImageButton mPrevButton;
     private TextView mQuestionTextView;
@@ -33,6 +40,7 @@ public class QuizActivity extends AppCompatActivity {
             new Question(R.string.question_asia, true),
     };
     private int mCurrentIndex = 0;
+    private boolean mIsCheater;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,8 +48,9 @@ public class QuizActivity extends AppCompatActivity {
         Log.d(TAG,"onCreate(Bundle)called");
         setContentView(R.layout.activity_quiz);
 
-        if(savedInstanceState!=null){
-            mCurrentIndex=savedInstanceState.getInt(KEY_INDEX,0);
+        if(savedInstanceState!=null) {
+            mCurrentIndex = savedInstanceState.getInt(KEY_INDEX, 0);
+            mQuestionBank= (Question[])savedInstanceState.getParcelableArray(BANK_INDEX);
         }
 
         mQuestionTextView=(TextView) findViewById(R.id.question_text_view);
@@ -89,6 +98,17 @@ public class QuizActivity extends AppCompatActivity {
             }
         });
 
+        mCheatButton = (Button)findViewById(R.id.cheat_button);
+        mCheatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+        // Start CheatActivity
+                boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
+                Intent intent = CheatActivity.newIntent(QuizActivity.this, answerIsTrue);
+                startActivityForResult(intent, REQUEST_CODE_CHEAT);
+            }
+        });
+
         updateQuestion();
     }
 
@@ -110,31 +130,52 @@ public class QuizActivity extends AppCompatActivity {
         answeredQuestions+=1;
         boolean answerIsTrue = mQuestionBank[mCurrentIndex].isAnswerTrue();
         int messageResId=0;
+        if (mQuestionBank[mCurrentIndex].isCheated()) {
+            messageResId = R.string.judgment_toast;
+        } else {
+            if (userPressedTrue == answerIsTrue) {
+                messageResId = R.string.correct_toast;
+                correctAnswers += 1;
+            } else {
+                messageResId = R.string.incorrect_toast;
+            }
+        }
+            mQuestionBank[mCurrentIndex].setAnswered(true);
+            Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
+            mTrueButton.setEnabled(false);
+            mFalseButton.setEnabled(false);
+            Log.i(TAG, "Correct Answers: " + correctAnswers);
+            Log.i(TAG, "Answered Questions: " + answeredQuestions);
+            Log.i(TAG, "Length: " + mQuestionBank.length);
+            if (answeredQuestions == mQuestionBank.length) {
+                Toast.makeText(this, "You answered " + ((float) correctAnswers / answeredQuestions * 100) + "% correctly", Toast.LENGTH_SHORT).show();
+            }
+        }
 
-        if (userPressedTrue == answerIsTrue) {
-            messageResId = R.string.correct_toast;
-            correctAnswers+=1;
-        }else {
-            messageResId= R.string.incorrect_toast;
-        }
-        mQuestionBank[mCurrentIndex].setAnswered(true);
-        Toast.makeText(this, messageResId,Toast.LENGTH_SHORT).show();
-        mTrueButton.setEnabled(false);
-        mFalseButton.setEnabled(false);
-        Log.i(TAG,"Correct Answers: "+correctAnswers);
-        Log.i(TAG,"Answered Questions: "+answeredQuestions);
-        Log.i(TAG,"Length: "+ mQuestionBank.length);
-        if (answeredQuestions==mQuestionBank.length){
-            Toast.makeText(this,"You answered "+ ((float)correctAnswers/answeredQuestions*100)+ "% correctly",Toast.LENGTH_SHORT).show();
-        }
-    }
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState){
         super.onSaveInstanceState(savedInstanceState);
         Log.i(TAG,"onSaveInstanceState");
         savedInstanceState.putInt(KEY_INDEX,mCurrentIndex);
+        savedInstanceState.putParcelableArray(BANK_INDEX,mQuestionBank);
+        savedInstanceState.putInt(COR_INDEX,correctAnswers);
+        savedInstanceState.putInt(ANS_INDEX,answeredQuestions);
+
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode != Activity.RESULT_OK) {
+        return;
+    }
+    if (requestCode == REQUEST_CODE_CHEAT) {
+        if (data == null) {
+            return;
+        }
+        mQuestionBank[mCurrentIndex].setCheated(CheatActivity.wasAnswerShown(data));
+    }
+}
 
     @Override
     public void onStart() {
